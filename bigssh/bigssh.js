@@ -52,7 +52,12 @@ module.exports = function(RED) {
         username: this.credentials.username,
         privateKey: undefined,
         privateKeyFile: this.credentials.privateKey,
-        passphrase: this.credentials.passphrase
+        passphrase: this.credentials.passphrase,
+        algorithms: {
+          kex: ['ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'diffie-hellman-group-exchange-sha256', 'diffie-hellman-group14-sha1', 'diffie-hellman-group-exchange-sha1', 'diffie-hellman-group1-sha1'],
+          cipher: ['aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-gcm', 'aes128-gcm@openssh.com', 'aes256-gcm', 'aes256-gcm@openssh.com', 'aes256-cbc', 'aes192-cbc', 'aes128-cbc', 'blowfish-cbc', '3des-cbc', 'arcfour256', 'arcfour128', 'cast128-cbc', 'arcfour'],
+          hmac: ['hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1', 'hmac-md5', 'hmac-sha2-256-96', 'hmac-sha2-512-96', 'hmac-ripemd160', 'hmac-sha1-96', 'hmac-md5-96']
+        }
       }
 
       //
@@ -63,7 +68,7 @@ module.exports = function(RED) {
 
         // This dummy writable is used when the command does not need any data on its stdin
         // If any data is coming, this stream drops it and no "EPIPE error" is thrown
-        var dummy = biglib.dummy_writable(my_config.noStdin);   
+        var dummy = biglib.dummy_writable(my_config.noStdin);
 
         // Choice was made to read the keyfile at each run in order to make it possible to correct a configuration
         // without restarting
@@ -114,11 +119,11 @@ module.exports = function(RED) {
             this.working('Launched, waiting for data...');
 
             stream
-              .on('close', function(code, signal) {  
+              .on('close', function(code, signal) {
 
-                // Gives biglib extra informations using the "stats" function                        
-                this.stats({ rc: code, signal: signal }); 
-                ret.emit('my_finish');    
+                // Gives biglib extra informations using the "stats" function
+                this.stats({ rc: code, signal: signal });
+                ret.emit('my_finish');
 
                 conn.end();
 
@@ -132,10 +137,10 @@ module.exports = function(RED) {
             // SSH stream is available, connect the bufstream
             stdin.pipe(stream).pipe(stdout);
 
-            // Also connect the ssh stderr stream to the pre allocated stderr 
+            // Also connect the ssh stderr stream to the pre allocated stderr
             stream.stderr.pipe(stderr);
 
-          }.bind(this));      
+          }.bind(this));
 
         }.bind(this))
         .on('error', function(err) {
@@ -154,7 +159,7 @@ module.exports = function(RED) {
         privateKey: { type: "text" },
         passphrase: { type: "password" }
       }
-    });      
+    });
 
     // The options the spawner will understand
     var ssh_options = {
@@ -164,7 +169,7 @@ module.exports = function(RED) {
       "minWarning": 1,                                                        // The min return code the node will consider it is a warning
       "minError": 8,                                                          // The min return code the node will consider it is as an error
       "noStdin": false                                                        // Command does require an input (used to avoid EPIPE error)                                                   // Command does require an input (used to avoid EPIPE error)
-    }    
+    }
 
     function BigSSH(config) {
 
@@ -177,7 +182,7 @@ module.exports = function(RED) {
       var progress = function(running) { return running ? "running for " + this.duration() : ("done with rc " + (this._runtime_control.rc != undefined ? this._runtime_control.rc : "?")) }
 
       // new instance of biglib for this configuration
-      var bignode = new biglib({ 
+      var bignode = new biglib({
         config: config, node: this,   // biglib needs to know the node configuration and the node itself (for statuses and sends)
         status: progress,             // define the kind of informations displayed while running
         parser_config: ssh_options,   // the parser configuration (ie the known options the parser will understand)
@@ -204,7 +209,7 @@ module.exports = function(RED) {
 
         bignode.main.call(bignode, msg);
       })
-    }  
+    }
 
     RED.nodes.registerType("bigssh", BigSSH);
 
